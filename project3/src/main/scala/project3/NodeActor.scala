@@ -14,14 +14,25 @@ class NodeActor(nodeID: String, predNode: String, succNode: String, numRequests:
   var hops = 0
   val m = 2
 
-  println("NODE ACTOR    " + succNode)
+  //println("NODE ACTOR    " + succNode)
   fingerTable.+=(succNode)
+  if (nodeID == "0001") {
+    fingerTable.+=("0003")
+    fingerTable.+=("0005")
+    fingerTable.+=("0009")
+  }
+
+  if (nodeID == "0005") {
+    fingerTable.+=("0007")
+    fingerTable.+=("0009")
+    fingerTable.+=("0013")
+  }
 
   def receive = {
 
     case msg: String => {
       if (msg.equals("InitFingerTable")) {
-        println("INIT!!! " + nodeID)
+        //println("INIT!!! " + nodeID)
         getFingerTable()
       }
     }
@@ -31,19 +42,19 @@ class NodeActor(nodeID: String, predNode: String, succNode: String, numRequests:
     }
 
     case FindClosestPrecedingNode(startNodeID,fingerIdx) => {
-      /*for (i <- 0 to fingerTable.size-1) {
-        if (findNodeID < fingerTable(i)) {
-          context.sender() ! FingerNodeFound(fingerTable(i), fingerIdx)
+      var nextNode = fingerTable(0)
+      val p = getName((pow(2,fingerIdx) - 1).toInt)
+      for (i <- 1 to fingerTable.size-1) {
+        if (p >= fingerTable(i)) {
+          nextNode = fingerTable(i)
         }
-      }*/
-
-      val p = pow(2,fingerIdx)
-      //println("TEST!!!!!" + nodeID + "   " + p + "   " + fingerTable(0))
-      if (fingerTable(0) < p.toString) {
-        context.actorSelection("../" + succNode) ! FindClosestPrecedingNode(startNodeID, fingerIdx)
+      }
+      println("NEXT NODE: " + nextNode + "     p: " + p)
+      if (p == nextNode.toString) {
+        println("FOUND!!!! " + p)
       }
       else {
-        println("FOUND!!!!!!! " + startNodeID + "    " + nodeID)
+        context.actorSelection("../" + nextNode) ! FindClosestPrecedingNode(startNodeID,fingerIdx)
       }
     }
 
@@ -57,7 +68,7 @@ class NodeActor(nodeID: String, predNode: String, succNode: String, numRequests:
 
   def getFingerTable() = {
     //for (i <- 0 until m) {
-      context.actorSelection("../" + succNode) ! FindClosestPrecedingNode(nodeID, 1)
+      context.actorSelection("../" + succNode) ! FindClosestPrecedingNode(nodeID, 3)
     //}
   }
 
@@ -71,6 +82,23 @@ class NodeActor(nodeID: String, predNode: String, succNode: String, numRequests:
 
   def sendMessage() = {
 
+  }
+
+  def getName(idx: Int): String = {
+    var result = ""
+    if (idx < 10) {
+      result = "000" + idx.toString
+    }
+    else if (idx < 100) {
+      result = "00" + idx.toString
+    }
+    else if (idx < 1000) {
+      result = "0" + idx.toString
+    }
+    else {
+      result = idx.toString
+    }
+    result
   }
 
 }

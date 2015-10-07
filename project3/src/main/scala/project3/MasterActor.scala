@@ -31,13 +31,30 @@ class MasterActor(numNodes: Int, numRequests: Int) extends Actor {
           }
 
           //println(predNode + "   " + succNode)
-          context.actorOf(Props(new NodeActor(i.toString, predNode.toString, succNode.toString, numRequests)), i.toString)
+          context.actorOf(Props(new NodeActor(getName(i), getName(predNode), getName(succNode), numRequests)), getName(i))
           Thread.sleep(200)
         }
-        context.actorSelection("0") ! "InitFingerTable"
+        context.actorSelection("0000") ! "InitFingerTable"
       }
     }
 
+  }
+
+  def getName(idx: Int): String = {
+    var result = ""
+    if (idx < 10) {
+      result = "000" + idx.toString
+    }
+    else if (idx < 100) {
+      result = "00" + idx.toString
+    }
+    else if (idx < 1000) {
+      result = "0" + idx.toString
+    }
+    else {
+      result = idx.toString
+    }
+    result
   }
 
 }
