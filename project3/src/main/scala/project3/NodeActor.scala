@@ -12,11 +12,11 @@ class NodeActor(nodeID: String, predNode: String, succNode: String, numRequests:
 
   var fingerTable = ArrayBuffer[String]()
   var hops = 0
-  val m = 2
+  val m = 20
 
   //println("NODE ACTOR    " + succNode)
   fingerTable.+=(succNode)
-  if (nodeID == "0001") {
+  /*if (nodeID == "0001") {
     fingerTable.+=("0003")
     fingerTable.+=("0005")
     fingerTable.+=("0009")
@@ -26,7 +26,13 @@ class NodeActor(nodeID: String, predNode: String, succNode: String, numRequests:
     fingerTable.+=("0007")
     fingerTable.+=("0009")
     fingerTable.+=("0013")
+  }*/
+  //println(nodeID)
+  for (i <- 1 until m) {
+    val n = getID(nodeID) + pow(2,i)
+    fingerTable.+=(n.toString)
   }
+  println(fingerTable)
 
   def receive = {
 
@@ -98,6 +104,12 @@ class NodeActor(nodeID: String, predNode: String, succNode: String, numRequests:
     else {
       result = idx.toString
     }
+    result
+  }
+
+  def getID(nodeName: String): Int = {
+    var result = 0
+    result = nodeName.replaceFirst("^0+(?!$)", "").toInt
     result
   }
 
