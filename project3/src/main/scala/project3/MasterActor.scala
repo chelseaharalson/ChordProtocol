@@ -31,10 +31,12 @@ class MasterActor(numNodes: Int, numRequests: Int) extends Actor {
           }
 
           //println(predNode + "   " + succNode)
-          context.actorOf(Props(new NodeActor(getName(i), getName(predNode), getName(succNode), numRequests)), getName(i))
+          context.actorOf(Props(new NodeActor(getName(i), getName(predNode), getName(succNode), numRequests, numNodes)), getName(i))
           Thread.sleep(200)
         }
-        context.actorSelection("0000") ! "InitFingerTable"
+        for (i <- 0 until numNodes-1) {
+          context.actorSelection(getName(i)) ! "InitFingerTable"
+        }
       }
     }
 

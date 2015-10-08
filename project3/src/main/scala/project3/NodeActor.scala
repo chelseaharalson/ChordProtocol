@@ -8,31 +8,13 @@ import scala.collection.mutable.ArrayBuffer
 /**
  * Created by chelsea on 10/04/15.
  */
-class NodeActor(nodeID: String, predNode: String, succNode: String, numRequests: Int) extends Actor {
+class NodeActor(nodeID: String, predNode: String, succNode: String, numRequests: Int, numNodes: Int) extends Actor {
 
   var fingerTable = ArrayBuffer[String]()
   var hops = 0
-  val m = 20
+  val m = 3
 
-  //println("NODE ACTOR    " + succNode)
   fingerTable.+=(succNode)
-  /*if (nodeID == "0001") {
-    fingerTable.+=("0003")
-    fingerTable.+=("0005")
-    fingerTable.+=("0009")
-  }
-
-  if (nodeID == "0005") {
-    fingerTable.+=("0007")
-    fingerTable.+=("0009")
-    fingerTable.+=("0013")
-  }*/
-  //println(nodeID)
-  for (i <- 1 until m) {
-    val n = getID(nodeID) + pow(2,i)
-    fingerTable.+=(n.toString)
-  }
-  println(fingerTable)
 
   def receive = {
 
@@ -74,8 +56,16 @@ class NodeActor(nodeID: String, predNode: String, succNode: String, numRequests:
 
   def getFingerTable() = {
     //for (i <- 0 until m) {
-      context.actorSelection("../" + succNode) ! FindClosestPrecedingNode(nodeID, 3)
+      //context.actorSelection("../" + succNode) ! FindClosestPrecedingNode(nodeID, 3)
     //}
+    for (i <- 1 until m) {
+      val n = (getID(nodeID) + pow(2,i)) % numNodes
+      val nodeName = getName(n.toInt)
+      fingerTable.+=(nodeName)
+    }
+    for (i <- 0 until m) {
+      println("Node ID: " + nodeID + "   Finger Table: " + fingerTable(i))
+    }
   }
 
   def stabilize() = {
