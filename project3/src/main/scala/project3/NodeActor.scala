@@ -26,13 +26,27 @@ class NodeActor(nodeID: String, predNode: String, succNode: String, numRequests:
       }
     }
 
-    case NodeFound(nodeID,hops) => {
+    case NodeFound(fnodeID,hops) => {
+      println("FOUND!!!! " + fnodeID + "   HOPS: " + hops)
+    }
 
+    case SendMessages(numNodes,numRequests) => {
+      val thread = new Thread {
+        override def run {
+          for (i <- 0 until numRequests) {
+            val r = Random.nextInt(numNodes)
+            Thread.sleep(1000)
+            println("Random: " + getNodeName(r))
+            context.actorSelection("../" + nodeID) ! LocateNode(getNodeName(r), nodeID, 0)
+          }
+        }
+      }
+      thread.start
     }
 
     case FindClosestPrecedingNode(startNodeID,fingerIdx) => {
       var nextNode = fingerTable(0)
-      val p = getName((pow(2,fingerIdx) - 1).toInt)
+      val p = getNodeName((pow(2,fingerIdx) - 1).toInt)
       for (i <- 1 to fingerTable.size-1) {
         if (p >= fingerTable(i)) {
           nextNode = fingerTable(i)
@@ -47,29 +61,43 @@ class NodeActor(nodeID: String, predNode: String, succNode: String, numRequests:
       }
     }
 
-    case LocateNode(nodeID,startNode,hops) => {
+    case LocateNode(lnodeID,startNode,hops) => {
       var hops2 = hops
       var nextNode = ""
-      //var nextNode = fingerTable(0)
-      //val p = getName((pow(2,fingerIdx) - 1).toInt)
+      var ft = ""
+      var lnodeID2 = ""
+      /*for (i <- 0 until m) {
+        println("Node ID: " + nodeID + "   Finger Table: " + fingerTable(i))
+      }*/
       nextNode = fingerTable(0)
       breakable {
         for (i <- 0 until fingerTable.size) {
-          if (nodeID == fingerTable(i)) {
+          if (fingerTable(i) > startNode) ft = fingerTable(i)
+          else ft = getNodeName(getID(fingerTable(i)) + numNodes)
+
+          if (lnodeID > startNode) lnodeID2 = lnodeID
+          else lnodeID2 = getNodeName(getID(lnodeID) + numNodes)
+
+          if (lnodeID2 == ft) {
             break
           }
-          else if (nodeID > fingerTable(i)) {
+          else if (lnodeID2 > ft) {
             nextNode = fingerTable(i)
+            //println("ASSIGN NEXT NODE ID: " + nextNode)
+          }
+          else {
+            break
           }
         }
       }
-      println("NEXT NODE: " + nextNode + "     p: " + nodeID)
-      if (nodeID == nextNode) {
-        println("FOUND!!!! " + nodeID)
+      hops2 += 1
+      println("NEXT NODE: " + nextNode + "     p: " + lnodeID)
+      if (lnodeID2 == nextNode) {
+        //println("FOUND!!!! " + nodeID + "   HOPS: " + hops2)
+        context.actorSelection("../" + startNode) ! NodeFound(lnodeID, hops2)
       }
       else {
-        hops2 += 1
-        context.actorSelection("../" + nextNode) ! LocateNode(nodeID, startNode, hops2)
+        context.actorSelection("../" + nextNode) ! LocateNode(lnodeID, startNode, hops2)
       }
     }
 
@@ -82,7 +110,7 @@ class NodeActor(nodeID: String, predNode: String, succNode: String, numRequests:
     //}
     for (i <- 1 until m) {
       val n = (getID(nodeID) + pow(2,i)) % numNodes
-      val nodeName = getName(n.toInt)
+      val nodeName = getNodeName(n.toInt)
       fingerTable.+=(nodeName)
     }
     for (i <- 0 until m) {
@@ -102,7 +130,7 @@ class NodeActor(nodeID: String, predNode: String, succNode: String, numRequests:
 
   }
 
-  def getName(idx: Int): String = {
+  def getNodeName(idx: Int): String = {
     var result = ""
     if (idx < 10) {
       result = "000" + idx.toString
