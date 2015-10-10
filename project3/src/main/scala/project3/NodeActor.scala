@@ -4,6 +4,7 @@ import akka.actor._
 import scala.util.Random
 import scala.math._
 import scala.collection.mutable.ArrayBuffer
+import scala.util.control.Breaks._
 
 /**
  * Created by chelsea on 10/04/15.
@@ -12,7 +13,7 @@ class NodeActor(nodeID: String, predNode: String, succNode: String, numRequests:
 
   var fingerTable = ArrayBuffer[String]()
   var hops = 0
-  val m = 3
+  val m = 4
 
   fingerTable.+=(succNode)
 
@@ -46,13 +47,34 @@ class NodeActor(nodeID: String, predNode: String, succNode: String, numRequests:
       }
     }
 
+    case LocateNode(nodeID,startNode,hops) => {
+      var hops2 = hops
+      var nextNode = ""
+      //var nextNode = fingerTable(0)
+      //val p = getName((pow(2,fingerIdx) - 1).toInt)
+      nextNode = fingerTable(0)
+      breakable {
+        for (i <- 0 until fingerTable.size) {
+          if (nodeID == fingerTable(i)) {
+            break
+          }
+          else if (nodeID > fingerTable(i)) {
+            nextNode = fingerTable(i)
+          }
+        }
+      }
+      println("NEXT NODE: " + nextNode + "     p: " + nodeID)
+      if (nodeID == nextNode) {
+        println("FOUND!!!! " + nodeID)
+      }
+      else {
+        hops2 += 1
+        context.actorSelection("../" + nextNode) ! LocateNode(nodeID, startNode, hops2)
+      }
+    }
+
   }
 
-  def locateNode(nodeID: String, startNode: String, hops: Int) = {
-    if (fingerTable.size == 0) {
-      context.actorSelection("../" + startNode) ! NodeFound(nodeID,1)
-    }
-  }
 
   def getFingerTable() = {
     //for (i <- 0 until m) {
@@ -64,7 +86,7 @@ class NodeActor(nodeID: String, predNode: String, succNode: String, numRequests:
       fingerTable.+=(nodeName)
     }
     for (i <- 0 until m) {
-      println("Node ID: " + nodeID + "   Finger Table: " + fingerTable(i))
+      //println("Node ID: " + nodeID + "   Finger Table: " + fingerTable(i))
     }
   }
 

@@ -34,9 +34,10 @@ class MasterActor(numNodes: Int, numRequests: Int) extends Actor {
           context.actorOf(Props(new NodeActor(getName(i), getName(predNode), getName(succNode), numRequests, numNodes)), getName(i))
           Thread.sleep(200)
         }
-        for (i <- 0 until numNodes-1) {
+        for (i <- 0 until numNodes) {
           context.actorSelection(getName(i)) ! "InitFingerTable"
         }
+        context.actorSelection(getName(0)) ! LocateNode("0009","0000",0)
       }
     }
 

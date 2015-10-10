@@ -7,3 +7,4 @@ package project3
 case class NodeFound(nodeID: String, hops: Int)
 case class FindClosestPrecedingNode(startNodeID: String, fingerIdx: Int)
 case class FingerNodeFound(foundNodeID: String, fingerIdx: String)
+case class LocateNode(nodeID: String, startNode: String, hops: Int)
