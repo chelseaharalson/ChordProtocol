@@ -66,15 +66,16 @@ class NodeActor(nodeID: String, predNode: String, succNode: String, numRequests:
       var nextNode = ""
       var ft = ""
   //    var lnodeID2 = ""
-      /*for (i <- 0 until m) {
-        println("Node ID: " + nodeID + "   Finger Table: " + fingerTable(i))
-      }*/
+   //   for (i <- 0 until m) {
+   //     println("Node ID: " + nodeID + "   Finger Table: " + fingerTable(i))
+   //   }
       nextNode = fingerTable(0)
       breakable {
         for (i <- 0 until fingerTable.size) {
           ft = fingerTable(i)
 
           if (lnodeID == ft) {
+            nextNode = fingerTable(i)
             break
           }
           else if (((lnodeID > startNode) && (lnodeID > ft) && (ft > startNode)) ||
