@@ -65,23 +65,21 @@ class NodeActor(nodeID: String, predNode: String, succNode: String, numRequests:
       var hops2 = hops
       var nextNode = ""
       var ft = ""
-      var lnodeID2 = ""
+  //    var lnodeID2 = ""
       /*for (i <- 0 until m) {
         println("Node ID: " + nodeID + "   Finger Table: " + fingerTable(i))
       }*/
       nextNode = fingerTable(0)
       breakable {
         for (i <- 0 until fingerTable.size) {
-          if (fingerTable(i) > startNode) ft = fingerTable(i)
-          else ft = getNodeName(getID(fingerTable(i)) + numNodes)
+          ft = fingerTable(i)
 
-          if (lnodeID > startNode) lnodeID2 = lnodeID
-          else lnodeID2 = getNodeName(getID(lnodeID) + numNodes)
-
-          if (lnodeID2 == ft) {
+          if (lnodeID == ft) {
             break
           }
-          else if (lnodeID2 > ft) {
+          else if (((lnodeID > startNode) && (lnodeID > ft) && (ft > startNode)) ||
+                  ((lnodeID < startNode) && (lnodeID > ft)) ||
+                  ((lnodeID < startNode) && (ft > startNode))) {
             nextNode = fingerTable(i)
             //println("ASSIGN NEXT NODE ID: " + nextNode)
           }
@@ -92,7 +90,7 @@ class NodeActor(nodeID: String, predNode: String, succNode: String, numRequests:
       }
       hops2 += 1
       println("NEXT NODE: " + nextNode + "     p: " + lnodeID)
-      if (lnodeID2 == nextNode) {
+      if (lnodeID == nextNode) {
         //println("FOUND!!!! " + nodeID + "   HOPS: " + hops2)
         context.actorSelection("../" + startNode) ! NodeFound(lnodeID, hops2)
       }
