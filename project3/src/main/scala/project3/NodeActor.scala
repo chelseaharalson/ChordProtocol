@@ -65,10 +65,9 @@ class NodeActor(nodeID: String, predNode: String, succNode: String, numRequests:
       var hops2 = hops
       var nextNode = ""
       var ft = ""
-  //    var lnodeID2 = ""
-   //   for (i <- 0 until m) {
-   //     println("Node ID: " + nodeID + "   Finger Table: " + fingerTable(i))
-   //   }
+      //   for (i <- 0 until m) {
+      //     println("Node ID: " + nodeID + "   Finger Table: " + fingerTable(i))
+      //   }
       nextNode = fingerTable(0)
       breakable {
         for (i <- 0 until fingerTable.size) {
@@ -78,9 +77,9 @@ class NodeActor(nodeID: String, predNode: String, succNode: String, numRequests:
             nextNode = fingerTable(i)
             break
           }
-          else if (((lnodeID > startNode) && (lnodeID > ft) && (ft > startNode)) ||
-                  ((lnodeID < startNode) && (lnodeID > ft)) ||
-                  ((lnodeID < startNode) && (ft > startNode))) {
+          else if (((lnodeID > startNode) && (lnodeID > ft) && (ft > startNode)) ||  // normal locate
+                  ((lnodeID < startNode) && (lnodeID > ft)) ||  // locate crossing 0 - normal selection
+                  ((lnodeID < startNode) && (ft > startNode))) { // locate crossing 0 - before 0 - left side always select
             nextNode = fingerTable(i)
             //println("ASSIGN NEXT NODE ID: " + nextNode)
           }
