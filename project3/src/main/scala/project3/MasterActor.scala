@@ -9,6 +9,9 @@ import scala.util.Random
  */
 class MasterActor(numNodes: Int, numRequests: Int) extends Actor {
 
+  var finishedCount = 0
+  var hopsCount = 0
+
   def receive = {
 
     case msg: String => {
@@ -38,11 +41,22 @@ class MasterActor(numNodes: Int, numRequests: Int) extends Actor {
           context.actorSelection(getNodeName(i)) ! "InitFingerTable"
         }
    //     context.actorSelection(getNodeName(14)) ! LocateNode("0004","0014",0)
-        context.actorSelection(getNodeName(0)) ! LocateNode("0009","0000",0)
+        //context.actorSelection(getNodeName(0)) ! LocateNode("0009","0000",0)
    //     context.actorSelection(getNodeName(4)) ! LocateNode("0002","0004",0)
    //     context.actorSelection(getNodeName(14)) ! LocateNode("0004","0014",0)
 
-        //context.actorSelection(getNodeName(0)) ! SendMessages(numNodes,numRequests)
+        for (i <- 0 until numNodes) {
+          context.actorSelection(getNodeName(i)) ! SendMessages(numNodes, numRequests)
+        }
+      }
+    }
+
+    case NodeFinished(fnodeID,hops) => {
+      finishedCount += 1
+      hopsCount += hops
+      println("Finished Count: " + finishedCount + "  Node ID: " + fnodeID + "  Average Hops: " + hops/numRequests)
+      if (finishedCount == numNodes) {
+        println("Total Average Hops: " + hopsCount/(numRequests * numNodes))
       }
     }
 

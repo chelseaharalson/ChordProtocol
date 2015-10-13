@@ -13,7 +13,9 @@ class NodeActor(nodeID: String, predNode: String, succNode: String, numRequests:
 
   var fingerTable = ArrayBuffer[String]()
   var hops = 0
-  val m = 4
+  val m = sqrt(numNodes).toInt
+  var finishedCount = 0
+  var hopsCount = 0
 
   fingerTable.+=(succNode)
 
@@ -26,8 +28,13 @@ class NodeActor(nodeID: String, predNode: String, succNode: String, numRequests:
       }
     }
 
-    case NodeFound(fnodeID,hops) => {
-      println("FOUND!!!! " + fnodeID + "   HOPS: " + hops)
+    case NodeFinished(fnodeID,hops) => {
+      finishedCount += 1
+      hopsCount += hops
+      if (finishedCount == numRequests) {
+        //println("FINISHED!!!! " + fnodeID + "   HOPS: " + hopsCount)
+        context.parent ! NodeFinished(nodeID,hopsCount)
+      }
     }
 
     case SendMessages(numNodes,numRequests) => {
@@ -36,7 +43,7 @@ class NodeActor(nodeID: String, predNode: String, succNode: String, numRequests:
           for (i <- 0 until numRequests) {
             val r = Random.nextInt(numNodes)
             Thread.sleep(1000)
-            println("Random: " + getNodeName(r))
+            //println("Random: " + getNodeName(r))
             context.actorSelection("../" + nodeID) ! LocateNode(getNodeName(r), nodeID, 0)
           }
         }
@@ -52,9 +59,9 @@ class NodeActor(nodeID: String, predNode: String, succNode: String, numRequests:
           nextNode = fingerTable(i)
         }
       }
-      println("NEXT NODE: " + nextNode + "     p: " + p)
+      //println("NEXT NODE: " + nextNode + "     p: " + p)
       if (p == nextNode.toString) {
-        println("FOUND!!!! " + p)
+        //println("FOUND!!!! " + p)
       }
       else {
         context.actorSelection("../" + nextNode) ! FindClosestPrecedingNode(startNodeID,fingerIdx)
@@ -89,10 +96,10 @@ class NodeActor(nodeID: String, predNode: String, succNode: String, numRequests:
         }
       }
       hops2 += 1
-      println("NEXT NODE: " + nextNode + "     p: " + lnodeID)
+      //println("NEXT NODE: " + nextNode + "     p: " + lnodeID)
       if (lnodeID == nextNode) {
         //println("FOUND!!!! " + nodeID + "   HOPS: " + hops2)
-        context.actorSelection("../" + startNode) ! NodeFound(lnodeID, hops2)
+        context.actorSelection("../" + startNode) ! NodeFinished(lnodeID, hops2)
       }
       else {
         context.actorSelection("../" + nextNode) ! LocateNode(lnodeID, startNode, hops2)
