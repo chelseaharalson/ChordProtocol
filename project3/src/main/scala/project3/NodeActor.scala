@@ -13,7 +13,8 @@ class NodeActor(nodeID: String, predNode: String, succNode: String, numRequests:
 
   var fingerTable = ArrayBuffer[String]()
   var hops = 0
-  val m = sqrt(numNodes).toInt
+  //val m = sqrt(numNodes).toInt
+  val m = 7
   var finishedCount = 0
   var hopsCount = 0
 
@@ -26,14 +27,20 @@ class NodeActor(nodeID: String, predNode: String, succNode: String, numRequests:
         //println("INIT!!! " + nodeID)
         getFingerTable()
       }
+      if (msg.equals("PrintFingerTable")) {
+        for (i <- 0 until fingerTable.size) {
+          println(fingerTable(i) + "   " + (80 + pow(2,i)))
+        }
+      }
     }
 
-    case NodeFinished(fnodeID,hops) => {
+    case NodeFinished(fnodeID,hops,mID) => {
       finishedCount += 1
       hopsCount += hops
+      if (mID >= 0) fingerTable(mID) = fnodeID
       if (finishedCount == numRequests) {
         //println("FINISHED!!!! " + fnodeID + "   HOPS: " + hopsCount)
-        context.parent ! NodeFinished(nodeID,hopsCount)
+        context.parent ! NodeFinished(nodeID,hopsCount,mID)
       }
     }
 
@@ -44,66 +51,73 @@ class NodeActor(nodeID: String, predNode: String, succNode: String, numRequests:
             val r = Random.nextInt(numNodes)
             Thread.sleep(1000)
             //println("Random: " + getNodeName(r))
-            context.actorSelection("../" + nodeID) ! LocateNode(getNodeName(r), nodeID, 0)
+            context.actorSelection("../" + nodeID) ! LocateNode(getNodeName(r), nodeID, 0, -1)
           }
         }
       }
       thread.start
     }
 
-    case FindClosestPrecedingNode(startNodeID,fingerIdx) => {
-      var nextNode = fingerTable(0)
-      val p = getNodeName((pow(2,fingerIdx) - 1).toInt)
-      for (i <- 1 to fingerTable.size-1) {
-        if (p >= fingerTable(i)) {
-          nextNode = fingerTable(i)
-        }
-      }
-      //println("NEXT NODE: " + nextNode + "     p: " + p)
-      if (p == nextNode.toString) {
-        //println("FOUND!!!! " + p)
-      }
-      else {
-        context.actorSelection("../" + nextNode) ! FindClosestPrecedingNode(startNodeID,fingerIdx)
+    case Stabilize(pNodeID) => {
+      val iNodeID = getID(pNodeID)
+      fingerTable.clear()
+      for (i <- 0 until m) {
+        fingerTable.+=("")
+        val l = iNodeID + pow(2,i)
+        //println("GET NODE NAME: " + getNodeName(l.toInt))
+        context.actorSelection("../" + pNodeID) ! LocateNode(getNodeName(l.toInt), pNodeID, 0, i)
       }
     }
 
-    case LocateNode(lnodeID,startNode,hops) => {
+    case LocateNode(lnodeID,startNode,hops,mID) => {
       var hops2 = hops
       var nextNode = ""
       var ft = ""
-      //   for (i <- 0 until m) {
-      //     println("Node ID: " + nodeID + "   Finger Table: " + fingerTable(i))
-      //   }
+      var found = false
+
       nextNode = fingerTable(0)
       breakable {
         for (i <- 0 until fingerTable.size) {
-          ft = fingerTable(i)
+          if (fingerTable(i) != "") {
+            ft = fingerTable(i)
 
-          if (lnodeID == ft) {
-            nextNode = fingerTable(i)
-            break
-          }
-          else if (((lnodeID > startNode) && (lnodeID > ft) && (ft > startNode)) ||  // normal locate
-                  ((lnodeID < startNode) && (lnodeID > ft)) ||  // locate crossing 0 - normal selection
-                  ((lnodeID < startNode) && (ft > startNode))) { // locate crossing 0 - before 0 - left side always select
-            nextNode = fingerTable(i)
-            //println("ASSIGN NEXT NODE ID: " + nextNode)
-          }
-          else {
-            break
+            if (lnodeID == ft) {
+              nextNode = fingerTable(i)
+              found = true
+              break
+            }
+            else if (((lnodeID > startNode) && (lnodeID > ft) && (ft > startNode)) || // normal locate
+              ((lnodeID < startNode) && (lnodeID > ft)) || // locate crossing 0 - normal selection
+              ((lnodeID < startNode) && (ft > startNode))) {
+              // locate crossing 0 - before 0 - left side always select
+              nextNode = fingerTable(i)
+              found = true
+              //println("ASSIGN NEXT NODE ID: " + nextNode)
+            }
+            else {
+              break
+            }
           }
         }
       }
+
+      if ( (getID(lnodeID) % numNodes >= getID(succNode)) && (!found) ) {
+        found = true
+        nextNode = succNode
+      }
+
+
+
       hops2 += 1
       //println("NEXT NODE: " + nextNode + "     p: " + lnodeID)
-      if (lnodeID == nextNode) {
-        //println("FOUND!!!! " + nodeID + "   HOPS: " + hops2)
-        context.actorSelection("../" + startNode) ! NodeFinished(lnodeID, hops2)
-      }
-      else {
-        context.actorSelection("../" + nextNode) ! LocateNode(lnodeID, startNode, hops2)
-      }
+      if (!found) context.actorSelection("../" + startNode) ! ClosestNode(succNode,mID)
+      else if (lnodeID == nextNode) context.actorSelection("../" + startNode) ! NodeFinished(lnodeID, hops2,mID)
+      else context.actorSelection("../" + nextNode) ! LocateNode(lnodeID, startNode, hops2, mID)
+    }
+
+    case ClosestNode(pnodeID,mID) => {
+      //println("Closest Node: " + pnodeID + "   MID: " + mID + "   pow: " + pow(2,mID))
+      if (mID >= 0) fingerTable(mID) = pnodeID
     }
 
   }
@@ -121,10 +135,6 @@ class NodeActor(nodeID: String, predNode: String, succNode: String, numRequests:
     for (i <- 0 until m) {
       //println("Node ID: " + nodeID + "   Finger Table: " + fingerTable(i))
     }
-  }
-
-  def stabilize() = {
-
   }
 
   def join() = {
