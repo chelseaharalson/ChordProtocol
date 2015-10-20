@@ -13,8 +13,8 @@ class NodeActor(nodeID: String, predNode: String, succNode: String, numRequests:
 
   var fingerTable = ArrayBuffer[String]()
   var hops = 0
-  //val m = sqrt(numNodes).toInt
-  val m = 7
+  val m = sqrt(numNodes).toInt
+  //val m = 7
   var finishedCount = 0
   var hopsCount = 0
 
@@ -42,6 +42,7 @@ class NodeActor(nodeID: String, predNode: String, succNode: String, numRequests:
         //println("FINISHED!!!! " + fnodeID + "   HOPS: " + hopsCount)
         context.parent ! NodeFinished(nodeID,hopsCount,mID)
       }
+      println("FINISHED!!!! " + fnodeID + "   HOPS: " + hopsCount)
     }
 
     case SendMessages(numNodes,numRequests) => {
@@ -101,18 +102,26 @@ class NodeActor(nodeID: String, predNode: String, succNode: String, numRequests:
         }
       }
 
-      if ( (getID(lnodeID) % numNodes >= getID(succNode)) && (!found) ) {
+      if ( (getID(lnodeID) >= getID(succNode)) && (!found) ) {
         found = true
         nextNode = succNode
+        //println("CHELSEA NEXT NODE: " + nextNode + "     p: " + lnodeID + "   Found: " + found)
       }
 
-
-
       hops2 += 1
-      //println("NEXT NODE: " + nextNode + "     p: " + lnodeID)
-      if (!found) context.actorSelection("../" + startNode) ! ClosestNode(succNode,mID)
-      else if (lnodeID == nextNode) context.actorSelection("../" + startNode) ! NodeFinished(lnodeID, hops2,mID)
-      else context.actorSelection("../" + nextNode) ! LocateNode(lnodeID, startNode, hops2, mID)
+      //println("NEXT NODE: " + nextNode + "     p: " + lnodeID + "   Found: " + found)
+      if (!found) {
+        println("lnode: " + lnodeID + "  CLOSEST   " + succNode)
+        context.actorSelection("../" + startNode) ! ClosestNode(succNode, mID)
+      }
+      else if (getID(lnodeID) % numNodes == getID(nextNode)) {
+        println("lnode: " + lnodeID + "  FINISHED   " + nextNode)
+        context.actorSelection("../" + startNode) ! NodeFinished(nextNode, hops2, mID)
+      }
+      else {
+        println("lnode: " + lnodeID + "  LOCATE   " + nextNode)
+        context.actorSelection("../" + nextNode) ! LocateNode(lnodeID, startNode, hops2, mID)
+      }
     }
 
     case ClosestNode(pnodeID,mID) => {
