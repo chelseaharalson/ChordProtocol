@@ -9,14 +9,19 @@ import scala.util.control.Breaks._
 /**
  * Created by chelsea on 10/04/15.
  */
-class NodeActor(nodeID: String, predNode: String, succNode: String, numRequests: Int, numNodes: Int) extends Actor {
+class NodeActor(nodeID: String, pPredNode: String, pSuccNode: String, numRequests: Int, numNodes: Int) extends Actor {
 
   var fingerTable = ArrayBuffer[String]()
   var hops = 0
-  val m = sqrt(numNodes).toInt
-  //val m = 7
+  //val m = sqrt(numNodes).toInt
+  val m = 7
   var finishedCount = 0
   var hopsCount = 0
+  val locateMode = "LocateMode"
+  val joinMode = "JoinMode"
+  var mode = locateMode
+  var predNode = pPredNode
+  var succNode = pSuccNode
 
   fingerTable.+=(succNode)
 
@@ -32,19 +37,32 @@ class NodeActor(nodeID: String, predNode: String, succNode: String, numRequests:
           println(fingerTable(i) + "   " + (80 + pow(2,i)))
         }
       }
+      if (msg.equals("Predecessor")) {
+        println("Pred Node " + predNode)
+      }
+      if (msg.equals("Successor")) {
+        println("Succ Node " + succNode)
+      }
     }
 
-    case NodeFinished(fnodeID,hops,mID) => {
+    // Received when there is an exact match on the node
+    case FoundNode(fnodeID,hops,mID) => {
       finishedCount += 1
       hopsCount += hops
       if (mID >= 0) fingerTable(mID) = fnodeID
       if (finishedCount == numRequests) {
         //println("FINISHED!!!! " + fnodeID + "   HOPS: " + hopsCount)
-        context.parent ! NodeFinished(nodeID,hopsCount,mID)
+        context.parent ! FoundNode(nodeID,hopsCount,mID)
       }
       println("FINISHED!!!! " + fnodeID + "   HOPS: " + hopsCount)
     }
 
+    case ClosestNode(pnodeID,mID) => {
+      //println("Closest Node: " + pnodeID + "   MID: " + mID + "   pow: " + pow(2,mID))
+      if (mID >= 0) fingerTable(mID) = pnodeID
+    }
+
+    // Chooses random number and sends message to that node until the number of requests
     case SendMessages(numNodes,numRequests) => {
       val thread = new Thread {
         override def run {
@@ -59,6 +77,7 @@ class NodeActor(nodeID: String, predNode: String, succNode: String, numRequests:
       thread.start
     }
 
+    // Sync all the nodes. Clears all the fingers and then rebuilds the finger table.
     case Stabilize(pNodeID) => {
       val iNodeID = getID(pNodeID)
       fingerTable.clear()
@@ -70,7 +89,11 @@ class NodeActor(nodeID: String, predNode: String, succNode: String, numRequests:
       }
     }
 
+    // Find closest or exact match
     case LocateNode(lnodeID,startNode,hops,mID) => {
+      // if mID == -2, joinMode
+      // if mID == -1, locateMode
+      // if mID >= 0, find fingerTable
       var hops2 = hops
       var nextNode = ""
       var ft = ""
@@ -112,11 +135,17 @@ class NodeActor(nodeID: String, predNode: String, succNode: String, numRequests:
       //println("NEXT NODE: " + nextNode + "     p: " + lnodeID + "   Found: " + found)
       if (!found) {
         println("lnode: " + lnodeID + "  CLOSEST   " + succNode)
-        context.actorSelection("../" + startNode) ! ClosestNode(succNode, mID)
+        if (mID == -2) {
+          // join mode
+          context.actorSelection("../" + succNode) ! InsertJoinS(lnodeID)
+        }
+        else {
+          context.actorSelection("../" + startNode) ! ClosestNode(succNode, mID)
+        }
       }
       else if (getID(lnodeID) % numNodes == getID(nextNode)) {
         println("lnode: " + lnodeID + "  FINISHED   " + nextNode)
-        context.actorSelection("../" + startNode) ! NodeFinished(nextNode, hops2, mID)
+        context.actorSelection("../" + startNode) ! FoundNode(nextNode, hops2, mID)
       }
       else {
         println("lnode: " + lnodeID + "  LOCATE   " + nextNode)
@@ -124,9 +153,18 @@ class NodeActor(nodeID: String, predNode: String, succNode: String, numRequests:
       }
     }
 
-    case ClosestNode(pnodeID,mID) => {
-      //println("Closest Node: " + pnodeID + "   MID: " + mID + "   pow: " + pow(2,mID))
-      if (mID >= 0) fingerTable(mID) = pnodeID
+    case Join(startNodeID,newNodeID) => {
+      mode = joinMode
+      context.actorSelection("../" + startNodeID) ! LocateNode(newNodeID, startNodeID, 0, -2)
+    }
+
+    case InsertJoinS(newNodeID) => {
+      context.actorSelection("../" + predNode) ! InsertJoinP(newNodeID)
+      predNode = newNodeID
+    }
+
+    case InsertJoinP(newNodeID) => {
+      succNode = newNodeID
     }
 
   }
@@ -147,10 +185,6 @@ class NodeActor(nodeID: String, predNode: String, succNode: String, numRequests:
   }
 
   def join() = {
-
-  }
-
-  def sendMessage() = {
 
   }
 

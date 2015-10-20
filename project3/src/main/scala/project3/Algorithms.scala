@@ -5,8 +5,10 @@ package project3
  */
 
 case class Stabilize(pNodeID: String)
-case class FingerNodeFound(foundNodeID: String, fingerIdx: String)
 case class LocateNode(lnodeID: String, startNode: String, hops: Int, mID: Int)
 case class SendMessages(numNodes: Int, numRequests: Int)
-case class NodeFinished(fnodeID: String, hops: Int, mID: Int)
+case class FoundNode(fnodeID: String, hops: Int, mID: Int)
 case class ClosestNode(pnodeID: String, mID: Int)
+case class Join(startNodeID: String, newNodeID: String)
+case class InsertJoinP(newNodeID: String)
+case class InsertJoinS(newNodeID: String)
