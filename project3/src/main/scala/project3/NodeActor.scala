@@ -15,6 +15,7 @@ class NodeActor(nodeID: String, pPredNode: String, pSuccNode: String, numRequest
   var hops = 0
   //val m = sqrt(numNodes).toInt
   val m = 7
+  //val m = 1
   var finishedCount = 0
   var hopsCount = 0
   val locateMode = "LocateMode"
@@ -34,14 +35,14 @@ class NodeActor(nodeID: String, pPredNode: String, pSuccNode: String, numRequest
       }
       if (msg.equals("PrintFingerTable")) {
         for (i <- 0 until fingerTable.size) {
-          println(fingerTable(i) + "   " + (80 + pow(2,i)))
+          println(fingerTable(i) + "   " + (getID(nodeID) + pow(2,i)))
         }
       }
       if (msg.equals("Predecessor")) {
-        println("Pred Node " + predNode)
+        println("Node ID: " + nodeID + "  Pred Node " + predNode)
       }
       if (msg.equals("Successor")) {
-        println("Succ Node " + succNode)
+        println("Node ID: " + nodeID + "  Succ Node " + succNode)
       }
     }
 
@@ -137,7 +138,7 @@ class NodeActor(nodeID: String, pPredNode: String, pSuccNode: String, numRequest
         println("lnode: " + lnodeID + "  CLOSEST   " + succNode)
         if (mID == -2) {
           // join mode
-          context.actorSelection("../" + succNode) ! InsertJoinS(lnodeID)
+          context.actorSelection("../" + succNode) ! UpdateNodes(lnodeID)
         }
         else {
           context.actorSelection("../" + startNode) ! ClosestNode(succNode, mID)
@@ -153,18 +154,29 @@ class NodeActor(nodeID: String, pPredNode: String, pSuccNode: String, numRequest
       }
     }
 
+    case UpdateNodes(newNodeID) => {
+      context.actorSelection("../" + predNode) ! UpdateSuccNode(newNodeID)
+      context.actorSelection("../" + newNodeID) ! UpdatePredNode(predNode)
+      context.actorSelection("../" + newNodeID) ! UpdateSuccNode(nodeID)
+      predNode = newNodeID
+    }
+
     case Join(startNodeID,newNodeID) => {
       mode = joinMode
       context.actorSelection("../" + startNodeID) ! LocateNode(newNodeID, startNodeID, 0, -2)
     }
 
-    case InsertJoinS(newNodeID) => {
-      context.actorSelection("../" + predNode) ! InsertJoinP(newNodeID)
+    case UpdatePredNode(newNodeID) => {
+      //if (newNodeID != nodeID) {
+        //context.actorSelection("../" + predNode) ! UpdateSuccNode(newNodeID)
+        //context.actorSelection("../" + newNodeID) ! UpdatePredNode(nodeID)
+      //}
       predNode = newNodeID
     }
 
-    case InsertJoinP(newNodeID) => {
+    case UpdateSuccNode(newNodeID) => {
       succNode = newNodeID
+      //context.actorSelection("../" + newNodeID) ! UpdatePredNode(nodeID)
     }
 
   }

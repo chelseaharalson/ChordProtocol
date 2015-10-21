@@ -16,73 +16,39 @@ class MasterActor(numNodes: Int, numRequests: Int) extends Actor {
 
     case msg: String => {
       if (msg.equals("CreateActors")) {
-        // Big set
-        /*var predNode = 0
-        var succNode = 0
-        for (i <- 0 until numNodes) {
-          // Create the actors
-          if (i == 0) {
-            predNode = numNodes-1
-            succNode = i + 1
-          }
-          else if (i == numNodes-1) {
-            predNode = i - 1
-            succNode = 0
-          }
-          else {
-            predNode = i - 1
-            succNode = i + 1
-          }
 
-          //println(predNode + "   " + succNode)
-          context.actorOf(Props(new NodeActor(getNodeName(i), getNodeName(predNode), getNodeName(succNode), numRequests, numNodes)), getNodeName(i))
-          Thread.sleep(200)
-        }
-        for (i <- 0 until numNodes) {
-          context.actorSelection(getNodeName(i)) ! "InitFingerTable"
-        }*/
+        //createRingOne()
+        createRingTwo()
 
-        /*for (i <- 0 until numNodes) {
-          context.actorSelection(getNodeName(i)) ! SendMessages(numNodes, numRequests)
-        }*/
-
-        // Small set
-        context.actorOf(Props(new NodeActor(getNodeName(16), getNodeName(112), getNodeName(32), numRequests, numNodes)), getNodeName(16))
-        Thread.sleep(200)
-
-        context.actorOf(Props(new NodeActor(getNodeName(32), getNodeName(16), getNodeName(45), numRequests, numNodes)), getNodeName(32))
-        Thread.sleep(200)
-
-        context.actorOf(Props(new NodeActor(getNodeName(45), getNodeName(32), getNodeName(80), numRequests, numNodes)), getNodeName(45))
-        Thread.sleep(200)
-
-        context.actorOf(Props(new NodeActor(getNodeName(80), getNodeName(45), getNodeName(96), numRequests, numNodes)), getNodeName(80))
-        Thread.sleep(200)
-
-        context.actorOf(Props(new NodeActor(getNodeName(96), getNodeName(80), getNodeName(112), numRequests, numNodes)), getNodeName(96))
-        Thread.sleep(200)
-
-        context.actorOf(Props(new NodeActor(getNodeName(112), getNodeName(96), getNodeName(16), numRequests, numNodes)), getNodeName(112))
-        Thread.sleep(200)
-
-        context.actorSelection(getNodeName(16)) ! Join(getNodeName(16), getNodeName(20))
-        Thread.sleep(200)
+        //context.actorSelection(getNodeName(16)) ! Join(getNodeName(16), getNodeName(20))
+        insertNode(getNodeName(20),getNodeName(16))
+        /*Thread.sleep(200)
         context.actorSelection(getNodeName(16)) ! "Successor"
         Thread.sleep(200)
-        context.actorSelection(getNodeName(32)) ! "Predecessor"
+        context.actorSelection(getNodeName(16)) ! "Predecessor"
         Thread.sleep(200)
-        context.actorSelection(getNodeName(80)) ! Stabilize("0080")
-        Thread.sleep(5000)
-        context.actorSelection(getNodeName(80)) ! "PrintFingerTable"
+
+
+        context.actorSelection(getNodeName(20)) ! "Successor"
+        Thread.sleep(200)
+        context.actorSelection(getNodeName(20)) ! "Predecessor"
+        Thread.sleep(200)
+
+
+        context.actorSelection(getNodeName(32)) ! "Successor"
+        Thread.sleep(200)
+        context.actorSelection(getNodeName(32)) ! "Predecessor"
+        Thread.sleep(200)*/
+
 
         // TEST
         //context.actorSelection(getNodeName(80)) ! LocateNode("0144","0080",0,-1)
         //context.actorSelection(getNodeName(14)) ! LocateNode("0004","0014",0,-1)
         //context.actorSelection(getNodeName(0)) ! LocateNode("0009","0000",0,-1)
         //context.actorSelection(getNodeName(4)) ! LocateNode("0002","0004",0,-1)
-        /*context.actorSelection(getNodeName(80)) ! Stabilize("0080")
+        /*context.actorSelection(getNodeName(8)) ! Stabilize("0008")
         Thread.sleep(5000)
-        context.actorSelection(getNodeName(80)) ! "PrintFingerTable"*/
+        context.actorSelection(getNodeName(8)) ! "PrintFingerTable"*/
 
       }
     }
@@ -96,6 +62,15 @@ class MasterActor(numNodes: Int, numRequests: Int) extends Actor {
       }
     }
 
+  }
+
+  def insertNode(newNodeID: String, baseNodeID: String) = {
+    context.actorOf(Props(new NodeActor(newNodeID, getNodeName(0), getNodeName(0), numRequests, numNodes)), newNodeID)
+    context.actorSelection(baseNodeID) ! Join(baseNodeID, newNodeID)
+    Thread.sleep(200)
+    context.actorSelection(newNodeID) ! Stabilize(newNodeID)
+    Thread.sleep(5000)
+    context.actorSelection(newNodeID) ! "PrintFingerTable"
   }
 
   def getNodeName(idx: Int): String = {
@@ -113,6 +88,59 @@ class MasterActor(numNodes: Int, numRequests: Int) extends Actor {
       result = idx.toString
     }
     result
+  }
+
+  def createRingOne() = {
+    // Big set
+    var predNode = 0
+    var succNode = 0
+    for (i <- 0 until numNodes) {
+      // Create the actors
+      if (i == 0) {
+        predNode = numNodes-1
+        succNode = i + 1
+      }
+      else if (i == numNodes-1) {
+        predNode = i - 1
+        succNode = 0
+      }
+      else {
+        predNode = i - 1
+        succNode = i + 1
+      }
+
+      //println(predNode + "   " + succNode)
+      context.actorOf(Props(new NodeActor(getNodeName(i), getNodeName(predNode), getNodeName(succNode), numRequests, numNodes)), getNodeName(i))
+      Thread.sleep(200)
+    }
+    for (i <- 0 until numNodes) {
+      context.actorSelection(getNodeName(i)) ! "InitFingerTable"
+    }
+
+    /*for (i <- 0 until numNodes) {
+      context.actorSelection(getNodeName(i)) ! SendMessages(numNodes, numRequests)
+    }*/
+  }
+
+  def createRingTwo() = {
+    // Small set
+    context.actorOf(Props(new NodeActor(getNodeName(16), getNodeName(112), getNodeName(32), numRequests, numNodes)), getNodeName(16))
+    Thread.sleep(200)
+
+    context.actorOf(Props(new NodeActor(getNodeName(32), getNodeName(16), getNodeName(45), numRequests, numNodes)), getNodeName(32))
+    Thread.sleep(200)
+
+    context.actorOf(Props(new NodeActor(getNodeName(45), getNodeName(32), getNodeName(80), numRequests, numNodes)), getNodeName(45))
+    Thread.sleep(200)
+
+    context.actorOf(Props(new NodeActor(getNodeName(80), getNodeName(45), getNodeName(96), numRequests, numNodes)), getNodeName(80))
+    Thread.sleep(200)
+
+    context.actorOf(Props(new NodeActor(getNodeName(96), getNodeName(80), getNodeName(112), numRequests, numNodes)), getNodeName(96))
+    Thread.sleep(200)
+
+    context.actorOf(Props(new NodeActor(getNodeName(112), getNodeName(96), getNodeName(16), numRequests, numNodes)), getNodeName(112))
+    Thread.sleep(200)
   }
 
 }
