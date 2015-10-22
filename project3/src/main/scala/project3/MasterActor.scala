@@ -17,11 +17,15 @@ class MasterActor(numNodes: Int, numRequests: Int) extends Actor {
     case msg: String => {
       if (msg.equals("CreateActors")) {
 
-        //createRingOne()
-        createRingTwo()
+        createRingOne()
+        //createRingTwo()
+        //context.actorSelection(getNodeName(2)) ! StabilizeAllNodes(getNodeName(2))
+        //context.actorSelection(getNodeName(80)) ! Stabilize(getNodeName(80))
+        //Thread.sleep(5000)
+        //context.actorSelection(getNodeName(2)) ! "PrintFingerTable"
 
         //context.actorSelection(getNodeName(16)) ! Join(getNodeName(16), getNodeName(20))
-        insertNode(getNodeName(20),getNodeName(16))
+        //insertNode(getNodeName(20),getNodeName(16))
         /*Thread.sleep(200)
         context.actorSelection(getNodeName(16)) ! "Successor"
         Thread.sleep(200)
@@ -66,11 +70,12 @@ class MasterActor(numNodes: Int, numRequests: Int) extends Actor {
 
   def insertNode(newNodeID: String, baseNodeID: String) = {
     context.actorOf(Props(new NodeActor(newNodeID, getNodeName(0), getNodeName(0), numRequests, numNodes)), newNodeID)
+    Thread.sleep(200)
     context.actorSelection(baseNodeID) ! Join(baseNodeID, newNodeID)
     Thread.sleep(200)
     context.actorSelection(newNodeID) ! Stabilize(newNodeID)
-    Thread.sleep(5000)
-    context.actorSelection(newNodeID) ! "PrintFingerTable"
+    //Thread.sleep(5000)
+    //context.actorSelection(newNodeID) ! "PrintFingerTable"
   }
 
   def getNodeName(idx: Int): String = {
@@ -91,35 +96,29 @@ class MasterActor(numNodes: Int, numRequests: Int) extends Actor {
   }
 
   def createRingOne() = {
-    // Big set
-    var predNode = 0
-    var succNode = 0
-    for (i <- 0 until numNodes) {
-      // Create the actors
-      if (i == 0) {
-        predNode = numNodes-1
-        succNode = i + 1
-      }
-      else if (i == numNodes-1) {
-        predNode = i - 1
-        succNode = 0
-      }
-      else {
-        predNode = i - 1
-        succNode = i + 1
-      }
-
-      //println(predNode + "   " + succNode)
-      context.actorOf(Props(new NodeActor(getNodeName(i), getNodeName(predNode), getNodeName(succNode), numRequests, numNodes)), getNodeName(i))
+    context.actorOf(Props(new NodeActor(getNodeName(0), getNodeName(numNodes*2), getNodeName(numNodes*2), numRequests, numNodes)), getNodeName(0))
+    Thread.sleep(200)
+    context.actorOf(Props(new NodeActor(getNodeName(numNodes*2), getNodeName(0), getNodeName(0), numRequests, numNodes)), getNodeName(numNodes*2))
+    Thread.sleep(200)
+    for (i <- 1 until numNodes-1) {
+      //insertNode(getNodeName(i*2),getNodeName(0))
+      println(i*2)
       Thread.sleep(200)
     }
-    for (i <- 0 until numNodes) {
-      context.actorSelection(getNodeName(i)) ! "InitFingerTable"
-    }
-
-    /*for (i <- 0 until numNodes) {
-      context.actorSelection(getNodeName(i)) ! SendMessages(numNodes, numRequests)
-    }*/
+    insertNode(getNodeName(2),getNodeName(0))
+    insertNode(getNodeName(4),getNodeName(0))
+    insertNode(getNodeName(6),getNodeName(0))
+    insertNode(getNodeName(8),getNodeName(0))
+    insertNode(getNodeName(10),getNodeName(0))
+    insertNode(getNodeName(12),getNodeName(0))
+    insertNode(getNodeName(14),getNodeName(0))
+    insertNode(getNodeName(16),getNodeName(0))
+    Thread.sleep(5000)
+    context.actorSelection(getNodeName(12)) ! "PrintFingerTable"
+    Thread.sleep(200)
+    context.actorSelection(getNodeName(12)) ! "Successor"
+    Thread.sleep(200)
+    context.actorSelection(getNodeName(12)) ! "Predecessor"
   }
 
   def createRingTwo() = {
