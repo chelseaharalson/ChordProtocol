@@ -15,8 +15,8 @@ class NodeActor(nodeID: String, pPredNode: String, pSuccNode: String, numRequest
   var hops = 0
   //val m = sqrt(numNodes).toInt
   //val m = 7
-  //val m = 1
-  val m = 4
+  val m = 1
+  //val m = 4
   //val m = 2
   var finishedCount = 0
   var hopsCount = 0
@@ -25,8 +25,6 @@ class NodeActor(nodeID: String, pPredNode: String, pSuccNode: String, numRequest
   var mode = locateMode
   var predNode = pPredNode
   var succNode = pSuccNode
-
-  fingerTable.+=(succNode)
 
   def receive = {
 
@@ -87,7 +85,7 @@ class NodeActor(nodeID: String, pPredNode: String, pSuccNode: String, numRequest
 
     case StabilizeAllNodes(pNodeID) => {
       if (succNode != pNodeID) {
-        //println("SUCC NODE: " + succNode)
+        println("PNODE ID: " + pNodeID + " SUCC NODE: " + succNode)
         stabilizeNode(nodeID)
         context.actorSelection("../" + succNode) ! StabilizeAllNodes(pNodeID)
       }
@@ -104,7 +102,7 @@ class NodeActor(nodeID: String, pPredNode: String, pSuccNode: String, numRequest
       var found = false
 
       nextNode = succNode
-      println("FT SIZE:   " + fingerTable.size + "   NODE ID: " + nodeID + "   NEXT NODE: " + nextNode)
+      //if (mID > -1) println("lnodeID:   " + lnodeID + "   NODE ID: " + nodeID + "   START NODE: " + startNode)
       breakable {
         for (i <- 0 until fingerTable.size) {
           if (fingerTable(i) != "") {
@@ -131,14 +129,22 @@ class NodeActor(nodeID: String, pPredNode: String, pSuccNode: String, numRequest
         }
       }
 
-      if ( (getID(lnodeID) >= getID(succNode)) && (!found) ) {
+      //println("LNODE ID: " + lnodeID + " SUCC NODE: " + succNode + " START NODE: " + startNode)
+      if (
+        ((getID(lnodeID) >= getID(succNode))
+            ||
+          ( (getID(lnodeID) <= getID(succNode) ) && ( (getID(lnodeID) <= getID(startNode)))
+          ))
+           && (!found)) {
+        //if (mID > -1) println("FOUND: " + found + "  NEXT NODE: " + nextNode)
+      //if ( (getID(lnodeID) > getID(succNode)) && (!found) ) {
         found = true
         nextNode = succNode
         //println("CHELSEA NEXT NODE: " + nextNode + "     p: " + lnodeID + "   Found: " + found)
       }
 
       hops2 += 1
-      //println("NEXT NODE: " + nextNode + "     p: " + lnodeID + "   Found: " + found)
+      //if (mID == -2) println("NEXT NODE: " + nextNode + "     l: " + lnodeID + "   Found: " + found)
       if (!found) {
         //println("lnode: " + lnodeID + "  CLOSEST   " + succNode)
         if (mID == -2) {
@@ -146,12 +152,12 @@ class NodeActor(nodeID: String, pPredNode: String, pSuccNode: String, numRequest
           context.actorSelection("../" + succNode) ! UpdateNodes(lnodeID)
         }
         else {
-          //println("!!!!!!!!!!!@@@@@@@@@@@@@######### " + lnodeID + "    " + succNode + "    " + nodeID)
+          println("!!!!!!!!!!!@@@@@@@@@@@@@######### " + lnodeID + "    " + succNode + "    " + nodeID)
           context.actorSelection("../" + startNode) ! ClosestNode(succNode, mID)
         }
       }
       else if (getID(lnodeID) % (numNodes * 2) == getID(nextNode)) {
-        println("lnode: " + lnodeID + "  FINISHED   " + nextNode + "   MOD: " + getID(lnodeID) % numNodes)
+        //println("lnode: " + lnodeID + "  FINISHED   " + nextNode + "   MOD: " + getID(lnodeID) % numNodes)
         if (mID == -2) {
           // join mode
           context.actorSelection("../" + succNode) ! UpdateNodes(lnodeID)
@@ -174,7 +180,6 @@ class NodeActor(nodeID: String, pPredNode: String, pSuccNode: String, numRequest
     }
 
     case Join(startNodeID,newNodeID) => {
-      mode = joinMode
       context.actorSelection("../" + startNodeID) ! LocateNode(newNodeID, startNodeID, 0, -2)
     }
 
