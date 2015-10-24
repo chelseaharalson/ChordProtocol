@@ -19,16 +19,16 @@ class MasterActor(numNodes: Int, numRequests: Int) extends Actor {
       if (msg.equals("CreateActors")) {
         createRingOne()
         //createRingTwo()
-        //context.actorSelection(getNodeName(0)) ! StabilizeAllNodes(getNodeName(0))
+        context.actorSelection(getNodeName(0)) ! StabilizeAllNodes(getNodeName(0))
+
+        context.actorSelection(getNodeName(2 * numNodes)) ! Stabilize(getNodeName(2 * numNodes))
         Thread.sleep(5000)
         println("================")
-        context.actorSelection(getNodeName(2 * numNodes)) ! Stabilize(getNodeName(2 * numNodes))
-        //Thread.sleep(5000)
 
         //context.actorSelection(getNodeName(0)) ! "Predecessor"
         //Thread.sleep(200)
         //context.actorSelection(getNodeName(0)) ! "Successor"
-        context.actorSelection(getNodeName(2 * numNodes)) ! "PrintFingerTable"
+        context.actorSelection(getNodeName(18)) ! "PrintFingerTable"
         //context.actorSelection(getNodeName(20)) ! LocateNode(getNodeName(0), getNodeName(20), 0, -1)
 
         //context.actorSelection(getNodeName(16)) ! Join(getNodeName(16), getNodeName(20))

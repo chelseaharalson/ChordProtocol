@@ -15,8 +15,8 @@ class NodeActor(nodeID: String, pPredNode: String, pSuccNode: String, numRequest
   var hops = 0
   //val m = sqrt(numNodes).toInt
   //val m = 7
-  val m = 1
-  //val m = 4
+  //val m = 1
+  val m = 4
   //val m = 2
   var finishedCount = 0
   var hopsCount = 0
@@ -35,7 +35,7 @@ class NodeActor(nodeID: String, pPredNode: String, pSuccNode: String, numRequest
       }
       if (msg.equals("PrintFingerTable")) {
         for (i <- 0 until fingerTable.size) {
-          println(fingerTable(i) + "   " + (getID(nodeID) + pow(2,i)))
+          println((getID(nodeID) + pow(2,i)) + "    " + fingerTable(i))
         }
       }
       if (msg.equals("Predecessor")) {
@@ -59,8 +59,9 @@ class NodeActor(nodeID: String, pPredNode: String, pSuccNode: String, numRequest
     }
 
     case ClosestNode(pnodeID,mID) => {
-      //println("Closest Node: " + pnodeID + "   MID: " + mID + "   pow: " + pow(2,mID))
       if (mID >= 0) fingerTable(mID) = pnodeID
+      /*println("Closest Node: " + pnodeID + "   MID: " + mID + "   pow: " + pow(2,mID) + "  Finger table MID: "
+        + fingerTable(mID) + "   Node ID: " + nodeID)*/
     }
 
     // Chooses random number and sends message to that node until the number of requests
@@ -85,7 +86,7 @@ class NodeActor(nodeID: String, pPredNode: String, pSuccNode: String, numRequest
 
     case StabilizeAllNodes(pNodeID) => {
       if (succNode != pNodeID) {
-        println("PNODE ID: " + pNodeID + " SUCC NODE: " + succNode)
+        //println("PNODE ID: " + pNodeID + " SUCC NODE: " + succNode)
         stabilizeNode(nodeID)
         context.actorSelection("../" + succNode) ! StabilizeAllNodes(pNodeID)
       }
@@ -129,18 +130,16 @@ class NodeActor(nodeID: String, pPredNode: String, pSuccNode: String, numRequest
         }
       }
 
-      //println("LNODE ID: " + lnodeID + " SUCC NODE: " + succNode + " START NODE: " + startNode)
+      //if (mID > -2) println("CHELSEA START NODE: " + startNode + "     l: " + lnodeID + "   s: " + succNode)
       if (
-        ((getID(lnodeID) >= getID(succNode))
-            ||
-          ( (getID(lnodeID) <= getID(succNode) ) && ( (getID(lnodeID) <= getID(startNode)))
-          ))
-           && (!found)) {
-        //if (mID > -1) println("FOUND: " + found + "  NEXT NODE: " + nextNode)
+        ( (lnodeID > startNode) && (lnodeID > succNode) && (succNode > startNode) ) // not crossing 0
+        || ( (lnodeID < startNode) && (lnodeID > succNode) ) // crosses 0
+        || ( (lnodeID < startNode) && (succNode > startNode) )
+        && (!found)
+      ) {
       //if ( (getID(lnodeID) > getID(succNode)) && (!found) ) {
         found = true
         nextNode = succNode
-        //println("CHELSEA NEXT NODE: " + nextNode + "     p: " + lnodeID + "   Found: " + found)
       }
 
       hops2 += 1
@@ -152,7 +151,7 @@ class NodeActor(nodeID: String, pPredNode: String, pSuccNode: String, numRequest
           context.actorSelection("../" + succNode) ! UpdateNodes(lnodeID)
         }
         else {
-          println("!!!!!!!!!!!@@@@@@@@@@@@@######### " + lnodeID + "    " + succNode + "    " + nodeID)
+          //println("!!!!!!!!!!!@@@@@@@@@@@@@######### " + lnodeID + "    " + succNode + "    " + nodeID)
           context.actorSelection("../" + startNode) ! ClosestNode(succNode, mID)
         }
       }
@@ -218,8 +217,9 @@ class NodeActor(nodeID: String, pPredNode: String, pSuccNode: String, numRequest
     fingerTable.clear()
     for (i <- 0 until m) {
       fingerTable.+=("")
-      val l = (iNodeID + pow(2,i)) % (numNodes * 2)
-      println("PNODE ID: " + pNodeID + "   GET NODE NAME: " + getNodeName(l.toInt))
+      var l = (iNodeID + pow(2,i)) % (numNodes * 2)
+      if (iNodeID > 0 && l == 0) l = iNodeID
+      //println("PNODE ID: " + pNodeID + "   GET NODE NAME: " + getNodeName(l.toInt))
       context.actorSelection("../" + pNodeID) ! LocateNode(getNodeName(l.toInt), pNodeID, 0, i)
     }
   }
