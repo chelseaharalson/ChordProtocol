@@ -20,11 +20,9 @@ class NodeActor(nodeID: String, pPredNode: String, pSuccNode: String, numRequest
   //val m = 2
   var finishedCount = 0
   var hopsCount = 0
-  val locateMode = "LocateMode"
-  val joinMode = "JoinMode"
-  var mode = locateMode
   var predNode = pPredNode
   var succNode = pSuccNode
+  var sent = false
 
   def receive = {
 
@@ -48,12 +46,14 @@ class NodeActor(nodeID: String, pPredNode: String, pSuccNode: String, numRequest
 
     // Received when there is an exact match on the node
     case FoundNode(fnodeID,hops,mID) => {
-      finishedCount += 1
-      hopsCount += hops
       if (mID >= 0) fingerTable(mID) = fnodeID
+      if (mID == -3 /*&& sent == false*/) {
+        finishedCount += 1
+        hopsCount += hops
+      }
       if (finishedCount == numRequests) {
         //println("FINISHED!!!! " + fnodeID + "   HOPS: " + hopsCount)
-        context.parent ! FoundNode(nodeID,hopsCount,mID)
+        context.parent ! FinishedMessage(nodeID,hopsCount)
       }
       //println("FINISHED!!!! " + fnodeID + "   HOPS: " + hopsCount)
     }
@@ -65,14 +65,20 @@ class NodeActor(nodeID: String, pPredNode: String, pSuccNode: String, numRequest
     }
 
     // Chooses random number and sends message to that node until the number of requests
-    case SendMessages(numNodes,numRequests) => {
+    case SendMessages(pNodeID,numNodes,numRequests) => {
+      if (succNode != pNodeID) {
+        context.actorSelection("../" + succNode) ! SendMessages(pNodeID,numNodes,numRequests)
+      }
       val thread = new Thread {
         override def run {
           for (i <- 0 until numRequests) {
-            val r = Random.nextInt(numNodes)
+            var r = getID(nodeID)
+            while (r == getID(nodeID) || r == 0) {
+              r = Random.nextInt(numNodes) * 2
+            }
             Thread.sleep(1000)
             //println("Random: " + getNodeName(r))
-            context.actorSelection("../" + nodeID) ! LocateNode(getNodeName(r), nodeID, 0, -1)
+            context.actorSelection("../" + nodeID) ! LocateNode(getNodeName(r), nodeID, 0, -3)
           }
         }
       }

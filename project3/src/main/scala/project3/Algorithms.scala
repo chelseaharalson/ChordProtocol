@@ -6,8 +6,9 @@ package project3
 
 case class Stabilize(pNodeID: String)
 case class LocateNode(lnodeID: String, startNode: String, hops: Int, mID: Int)
-case class SendMessages(numNodes: Int, numRequests: Int)
+case class SendMessages(pNodeID: String, numNodes: Int, numRequests: Int)
 case class FoundNode(fnodeID: String, hops: Int, mID: Int)
+case class FinishedMessage(fnodeID: String, hops: Int)
 case class ClosestNode(pnodeID: String, mID: Int)
 case class Join(startNodeID: String, newNodeID: String)
 case class UpdateSuccNode(newNodeID: String)

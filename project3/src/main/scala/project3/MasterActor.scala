@@ -19,37 +19,22 @@ class MasterActor(numNodes: Int, numRequests: Int) extends Actor {
       if (msg.equals("CreateActors")) {
         createRingOne()
         //createRingTwo()
-        context.actorSelection(getNodeName(0)) ! StabilizeAllNodes(getNodeName(0))
+        context.actorSelection(getNodeName(2)) ! StabilizeAllNodes(getNodeName(2))
 
-        context.actorSelection(getNodeName(2 * numNodes)) ! Stabilize(getNodeName(2 * numNodes))
+        context.actorSelection(getNodeName(numNodes * 2)) ! Stabilize(getNodeName(numNodes * 2))
         Thread.sleep(5000)
         println("================")
+
+        context.actorSelection(getNodeName(2)) ! SendMessages(getNodeName(2),numNodes, numRequests)
 
         //context.actorSelection(getNodeName(0)) ! "Predecessor"
         //Thread.sleep(200)
         //context.actorSelection(getNodeName(0)) ! "Successor"
-        context.actorSelection(getNodeName(18)) ! "PrintFingerTable"
-        //context.actorSelection(getNodeName(20)) ! LocateNode(getNodeName(0), getNodeName(20), 0, -1)
+        context.actorSelection(getNodeName(20)) ! "PrintFingerTable"
+        //context.actorSelection(getNodeName(4)) ! LocateNode(getNodeName(0), getNodeName(4), 0, -3)
 
         //context.actorSelection(getNodeName(16)) ! Join(getNodeName(16), getNodeName(20))
         //insertNode(getNodeName(20),getNodeName(16))
-        /*Thread.sleep(200)
-        context.actorSelection(getNodeName(16)) ! "Successor"
-        Thread.sleep(200)
-        context.actorSelection(getNodeName(16)) ! "Predecessor"
-        Thread.sleep(200)
-
-
-        context.actorSelection(getNodeName(20)) ! "Successor"
-        Thread.sleep(200)
-        context.actorSelection(getNodeName(20)) ! "Predecessor"
-        Thread.sleep(200)
-
-
-        context.actorSelection(getNodeName(32)) ! "Successor"
-        Thread.sleep(200)
-        context.actorSelection(getNodeName(32)) ! "Predecessor"
-        Thread.sleep(200)*/
 
 
         // TEST
@@ -64,12 +49,13 @@ class MasterActor(numNodes: Int, numRequests: Int) extends Actor {
       }
     }
 
-    case FoundNode(fnodeID,hops,mID) => {
+    case FinishedMessage(fnodeID,hops) => {
       finishedCount += 1
       hopsCount += hops
       println("Finished Count: " + finishedCount + "  Node ID: " + fnodeID + "  Average Hops: " + hops/numRequests)
       if (finishedCount == numNodes) {
         println("Total Average Hops: " + hopsCount/(numRequests * numNodes))
+        System.exit(0)
       }
     }
 
@@ -103,13 +89,13 @@ class MasterActor(numNodes: Int, numRequests: Int) extends Actor {
   }
 
   def createRingOne() = {
-    context.actorOf(Props(new NodeActor(getNodeName(0), getNodeName(numNodes*2), getNodeName(numNodes*2), numRequests, numNodes)), getNodeName(0))
+    context.actorOf(Props(new NodeActor(getNodeName(2), getNodeName(numNodes*2), getNodeName(numNodes*2), numRequests, numNodes)), getNodeName(2))
     Thread.sleep(200)
-    context.actorOf(Props(new NodeActor(getNodeName(numNodes*2), getNodeName(0), getNodeName(0), numRequests, numNodes)), getNodeName(numNodes*2))
+    context.actorOf(Props(new NodeActor(getNodeName(numNodes*2), getNodeName(2), getNodeName(2), numRequests, numNodes)), getNodeName(numNodes*2))
     Thread.sleep(200)
-    for (i <- 1 until numNodes) {
+    for (i <- 2 until numNodes) {
       //println(i*2)
-      insertNode(getNodeName(i*2),getNodeName(0))
+      insertNode(getNodeName(i*2),getNodeName(2))
     }
   }
 
