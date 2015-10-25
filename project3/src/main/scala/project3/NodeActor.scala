@@ -13,11 +13,11 @@ class NodeActor(nodeID: String, pPredNode: String, pSuccNode: String, numRequest
 
   var fingerTable = ArrayBuffer[String]()
   var hops = 0
-  //val m = sqrt(numNodes).toInt
   //val m = 7
   //val m = 1
-  val m = 4
+  //val m = 4
   //val m = 2
+  val m = getM(numNodes)
   var finishedCount = 0
   var hopsCount = 0
   var predNode = pPredNode
@@ -56,11 +56,9 @@ class NodeActor(nodeID: String, pPredNode: String, pSuccNode: String, numRequest
         for (i <- 0 until fingerTable.size) {
           if (fingerTable(i) != "") {
             ft = fingerTable(i)
-
             if (lnodeID == ft) {
               nextNode = fingerTable(i)
               found = true
-              //println("FOUND!!!! " + nextNode)
               break
             }
             else if (((lnodeID > startNode) && (lnodeID > ft) && (ft > startNode)) || // normal locate
@@ -77,19 +75,18 @@ class NodeActor(nodeID: String, pPredNode: String, pSuccNode: String, numRequest
         }
       }
 
+      if (mID == -3 && found) hops2 += 1
       // Tries to locate node through successor node.
-      if (
+      if ((!found) && (
         ( (lnodeID > startNode) && (lnodeID > succNode) && (succNode > startNode) ) // not crossing 0
         || ( (lnodeID < startNode) && (lnodeID > succNode) ) // crosses 0
         || ( (lnodeID < startNode) && (succNode > startNode) ) // locate crossing 0 - before 0 - left side always select
-        && (!found) ) {
+        )) {
           found = true
           nextNode = succNode
         }
 
-      hops2 += 1
       if (!found) {
-        //println("lnode: " + lnodeID + "  CLOSEST   " + succNode)
         if (mID == -2) {
           // join mode
           // Succ Node is the closest largest node, so succ node gets the message to update nodes
@@ -101,17 +98,19 @@ class NodeActor(nodeID: String, pPredNode: String, pSuccNode: String, numRequest
         }
       }
       else if (getID(lnodeID) % (numNodes * 2) == getID(nextNode)) {
-        //println("lnode: " + lnodeID + "  FINISHED   " + nextNode + "   MOD: " + getID(lnodeID) % numNodes)
+        //if (mID == -3) println("lnode: " + lnodeID + "  FINISHED   " + nextNode + "   MOD: " + getID(lnodeID) % numNodes)
         if (mID == -2) {
           // join mode
           context.actorSelection("../" + succNode) ! UpdateNodes(lnodeID)
         }
         else {
+          //hops2 += 1
           context.actorSelection("../" + startNode) ! FoundNode(nextNode, hops2, mID)
         }
       }
       else {
-        //println("lnode: " + lnodeID + "  LOCATE   " + nextNode)
+        //if (mID == -3) println("lnode: " + lnodeID + "  LOCATE   " + nextNode)
+        //hops2 += 1
         context.actorSelection("../" + nextNode) ! LocateNode(lnodeID, startNode, hops2, mID)
       }
     }
@@ -124,6 +123,7 @@ class NodeActor(nodeID: String, pPredNode: String, pSuccNode: String, numRequest
       if (mID == -3) {
         finishedCount += 1
         hopsCount += hops
+        //println("FINISHED!!!! " + fnodeID + "   HOPS: " + hopsCount)
       }
       if (finishedCount == numRequests) {
         //println("FINISHED!!!! " + fnodeID + "   HOPS: " + hopsCount)
@@ -238,6 +238,15 @@ class NodeActor(nodeID: String, pPredNode: String, pSuccNode: String, numRequest
     var result = 0
     result = nodeName.replaceFirst("^0+(?!$)", "").toInt
     result
+  }
+
+  def getM(numOfNodes: Int): Int = {
+    var i = 0
+    while (numOfNodes >= pow(2,i)) {
+      //println("Power " + pow(2,i))
+      i += 1
+    }
+    i-1
   }
 
 }

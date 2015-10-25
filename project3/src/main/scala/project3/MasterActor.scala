@@ -1,6 +1,7 @@
 package project3
 
 import akka.actor._
+import scala.math._
 
 /**
  * Created by chelsea on 10/04/15.
@@ -19,9 +20,10 @@ class MasterActor(numNodes: Int, numRequests: Int) extends Actor {
         context.actorSelection(getNodeName(2)) ! StabilizeAllNodes(getNodeName(2))
         context.actorSelection(getNodeName(numNodes * 2)) ! Stabilize(getNodeName(numNodes * 2))
         insertNode(getNodeName(3),getNodeName(2),true)
-        Thread.sleep(5000)
+        Thread.sleep(numNodes * 500)
         println("================")
-        context.actorSelection(getNodeName(2)) ! SendMessages(getNodeName(2),numNodes, numRequests)
+        context.actorSelection(getNodeName(2)) ! SendMessages(getNodeName(2),numNodes,numRequests)
+        //context.actorSelection(getNodeName(2)) ! LocateNode(getNodeName(6),getNodeName(2),0,-3)
         context.actorSelection(getNodeName(3)) ! "PrintFingerTable"
       }
     }
