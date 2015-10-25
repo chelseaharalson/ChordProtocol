@@ -1,8 +1,6 @@
 package project3
 
 import akka.actor._
-import scala.math._
-import scala.util.Random
 
 /**
  * Created by chelsea on 10/04/15.
@@ -11,7 +9,6 @@ class MasterActor(numNodes: Int, numRequests: Int) extends Actor {
 
   var finishedCount = 0
   var hopsCount = 0
-  //var numNodes = numOfNodes * 2
 
   def receive = {
 
@@ -20,32 +17,12 @@ class MasterActor(numNodes: Int, numRequests: Int) extends Actor {
         createRingOne()
         //createRingTwo()
         context.actorSelection(getNodeName(2)) ! StabilizeAllNodes(getNodeName(2))
-
         context.actorSelection(getNodeName(numNodes * 2)) ! Stabilize(getNodeName(numNodes * 2))
+        insertNode(getNodeName(3),getNodeName(2),true)
         Thread.sleep(5000)
         println("================")
-
         context.actorSelection(getNodeName(2)) ! SendMessages(getNodeName(2),numNodes, numRequests)
-
-        //context.actorSelection(getNodeName(0)) ! "Predecessor"
-        //Thread.sleep(200)
-        //context.actorSelection(getNodeName(0)) ! "Successor"
-        context.actorSelection(getNodeName(20)) ! "PrintFingerTable"
-        //context.actorSelection(getNodeName(4)) ! LocateNode(getNodeName(0), getNodeName(4), 0, -3)
-
-        //context.actorSelection(getNodeName(16)) ! Join(getNodeName(16), getNodeName(20))
-        //insertNode(getNodeName(20),getNodeName(16))
-
-
-        // TEST
-        //context.actorSelection(getNodeName(80)) ! LocateNode("0144","0080",0,-1)
-        //context.actorSelection(getNodeName(14)) ! LocateNode("0004","0014",0,-1)
-        //context.actorSelection(getNodeName(0)) ! LocateNode("0009","0000",0,-1)
-        //context.actorSelection(getNodeName(4)) ! LocateNode("0002","0004",0,-1)
-        /*context.actorSelection(getNodeName(8)) ! Stabilize("0008")
-        Thread.sleep(5000)
-        context.actorSelection(getNodeName(8)) ! "PrintFingerTable"*/
-
+        context.actorSelection(getNodeName(3)) ! "PrintFingerTable"
       }
     }
 
@@ -61,16 +38,18 @@ class MasterActor(numNodes: Int, numRequests: Int) extends Actor {
 
   }
 
-  def insertNode(newNodeID: String, baseNodeID: String) = {
+  // Inserts node into the finger table
+  def insertNode(newNodeID: String, baseNodeID: String, stabilize: Boolean) = {
     context.actorOf(Props(new NodeActor(newNodeID, getNodeName(0), getNodeName(0), numRequests, numNodes)), newNodeID)
     Thread.sleep(200)
     context.actorSelection(baseNodeID) ! Join(baseNodeID, newNodeID)
     Thread.sleep(200)
-    //context.actorSelection(newNodeID) ! Stabilize(newNodeID)
-    //Thread.sleep(5000)
-    //context.actorSelection(newNodeID) ! "PrintFingerTable"
+    if (stabilize) {
+      context.actorSelection(newNodeID) ! Stabilize(newNodeID)
+    }
   }
 
+  // Adds the zeros for the node name
   def getNodeName(idx: Int): String = {
     var result = ""
     if (idx < 10) {
@@ -95,7 +74,7 @@ class MasterActor(numNodes: Int, numRequests: Int) extends Actor {
     Thread.sleep(200)
     for (i <- 2 until numNodes) {
       //println(i*2)
-      insertNode(getNodeName(i*2),getNodeName(2))
+      insertNode(getNodeName(i*2),getNodeName(2),false)
     }
   }
 

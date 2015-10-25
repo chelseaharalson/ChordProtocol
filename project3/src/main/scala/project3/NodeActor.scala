@@ -27,10 +27,6 @@ class NodeActor(nodeID: String, pPredNode: String, pSuccNode: String, numRequest
   def receive = {
 
     case msg: String => {
-      if (msg.equals("InitFingerTable")) {
-        //println("INIT!!! " + nodeID)
-        getFingerTable()
-      }
       if (msg.equals("PrintFingerTable")) {
         for (i <- 0 until fingerTable.size) {
           println((getID(nodeID) + pow(2,i)) + "    " + fingerTable(i))
@@ -41,60 +37,6 @@ class NodeActor(nodeID: String, pPredNode: String, pSuccNode: String, numRequest
       }
       if (msg.equals("Successor")) {
         println("Node ID: " + nodeID + "  Succ Node " + succNode)
-      }
-    }
-
-    // Received when there is an exact match on the node
-    case FoundNode(fnodeID,hops,mID) => {
-      if (mID >= 0) fingerTable(mID) = fnodeID
-      if (mID == -3 /*&& sent == false*/) {
-        finishedCount += 1
-        hopsCount += hops
-      }
-      if (finishedCount == numRequests) {
-        //println("FINISHED!!!! " + fnodeID + "   HOPS: " + hopsCount)
-        context.parent ! FinishedMessage(nodeID,hopsCount)
-      }
-      //println("FINISHED!!!! " + fnodeID + "   HOPS: " + hopsCount)
-    }
-
-    case ClosestNode(pnodeID,mID) => {
-      if (mID >= 0) fingerTable(mID) = pnodeID
-      /*println("Closest Node: " + pnodeID + "   MID: " + mID + "   pow: " + pow(2,mID) + "  Finger table MID: "
-        + fingerTable(mID) + "   Node ID: " + nodeID)*/
-    }
-
-    // Chooses random number and sends message to that node until the number of requests
-    case SendMessages(pNodeID,numNodes,numRequests) => {
-      if (succNode != pNodeID) {
-        context.actorSelection("../" + succNode) ! SendMessages(pNodeID,numNodes,numRequests)
-      }
-      val thread = new Thread {
-        override def run {
-          for (i <- 0 until numRequests) {
-            var r = getID(nodeID)
-            while (r == getID(nodeID) || r == 0) {
-              r = Random.nextInt(numNodes) * 2
-            }
-            Thread.sleep(1000)
-            //println("Random: " + getNodeName(r))
-            context.actorSelection("../" + nodeID) ! LocateNode(getNodeName(r), nodeID, 0, -3)
-          }
-        }
-      }
-      thread.start
-    }
-
-    // Sync all the nodes. Clears all the fingers and then rebuilds the finger table.
-    case Stabilize(pNodeID) => {
-      stabilizeNode(pNodeID)
-    }
-
-    case StabilizeAllNodes(pNodeID) => {
-      if (succNode != pNodeID) {
-        //println("PNODE ID: " + pNodeID + " SUCC NODE: " + succNode)
-        stabilizeNode(nodeID)
-        context.actorSelection("../" + succNode) ! StabilizeAllNodes(pNodeID)
       }
     }
 
@@ -109,7 +51,7 @@ class NodeActor(nodeID: String, pPredNode: String, pSuccNode: String, numRequest
       var found = false
 
       nextNode = succNode
-      //if (mID > -1) println("lnodeID:   " + lnodeID + "   NODE ID: " + nodeID + "   START NODE: " + startNode)
+      // Tries to locate node through finger table.
       breakable {
         for (i <- 0 until fingerTable.size) {
           if (fingerTable(i) != "") {
@@ -136,24 +78,22 @@ class NodeActor(nodeID: String, pPredNode: String, pSuccNode: String, numRequest
         }
       }
 
-      //if (mID > -2) println("CHELSEA START NODE: " + startNode + "     l: " + lnodeID + "   s: " + succNode)
+      // Tries to locate node through successor node.
       if (
         ( (lnodeID > startNode) && (lnodeID > succNode) && (succNode > startNode) ) // not crossing 0
         || ( (lnodeID < startNode) && (lnodeID > succNode) ) // crosses 0
         || ( (lnodeID < startNode) && (succNode > startNode) )
-        && (!found)
-      ) {
-      //if ( (getID(lnodeID) > getID(succNode)) && (!found) ) {
-        found = true
-        nextNode = succNode
-      }
+        && (!found) ) {
+          found = true
+          nextNode = succNode
+        }
 
       hops2 += 1
-      //if (mID == -2) println("NEXT NODE: " + nextNode + "     l: " + lnodeID + "   Found: " + found)
       if (!found) {
         //println("lnode: " + lnodeID + "  CLOSEST   " + succNode)
         if (mID == -2) {
           // join mode
+          // Succ Node is the closest largest node, so succ node gets the message to update nodes
           context.actorSelection("../" + succNode) ! UpdateNodes(lnodeID)
         }
         else {
@@ -177,6 +117,50 @@ class NodeActor(nodeID: String, pPredNode: String, pSuccNode: String, numRequest
       }
     }
 
+    // Received when there is an exact match on the node
+    case FoundNode(fnodeID,hops,mID) => {
+      // Fill in finger table
+      if (mID >= 0) fingerTable(mID) = fnodeID
+      // Send messages
+      if (mID == -3) {
+        finishedCount += 1
+        hopsCount += hops
+      }
+      if (finishedCount == numRequests) {
+        //println("FINISHED!!!! " + fnodeID + "   HOPS: " + hopsCount)
+        context.parent ! FinishedMessage(nodeID,hopsCount)
+      }
+    }
+
+    // Not an exact match on the closest node, but found next largest one.
+    case ClosestNode(pnodeID,mID) => {
+      if (mID >= 0) fingerTable(mID) = pnodeID
+      /*println("Closest Node: " + pnodeID + "   MID: " + mID + "   pow: " + pow(2,mID) + "  Finger table MID: "
+        + fingerTable(mID) + "   Node ID: " + nodeID)*/
+    }
+
+    // Stabilize 1 node
+    case Stabilize(pNodeID) => {
+      stabilizeNode(pNodeID)
+    }
+
+    // Goes from successor to successor and sends a message to stabilize. pNodeID is starting point.
+    case StabilizeAllNodes(pNodeID) => {
+      if (succNode != pNodeID) {
+        //println("PNODE ID: " + pNodeID + " SUCC NODE: " + succNode)
+        stabilizeNode(nodeID)
+        context.actorSelection("../" + succNode) ! StabilizeAllNodes(pNodeID)
+      }
+    }
+
+    // Join function
+    case Join(startNodeID,newNodeID) => {
+      // Finds the next largest node to the desired node to be inserted
+      // Needs to know 1 node to start searching from
+      context.actorSelection("../" + startNodeID) ! LocateNode(newNodeID, startNodeID, 0, -2)
+    }
+
+    // Update nodes with new predecessor and successor
     case UpdateNodes(newNodeID) => {
       context.actorSelection("../" + predNode) ! UpdateSuccNode(newNodeID)
       context.actorSelection("../" + newNodeID) ! UpdatePredNode(predNode)
@@ -184,52 +168,55 @@ class NodeActor(nodeID: String, pPredNode: String, pSuccNode: String, numRequest
       predNode = newNodeID
     }
 
-    case Join(startNodeID,newNodeID) => {
-      context.actorSelection("../" + startNodeID) ! LocateNode(newNodeID, startNodeID, 0, -2)
-    }
-
     case UpdatePredNode(newNodeID) => {
-      //if (newNodeID != nodeID) {
-        //context.actorSelection("../" + predNode) ! UpdateSuccNode(newNodeID)
-        //context.actorSelection("../" + newNodeID) ! UpdatePredNode(nodeID)
-      //}
       predNode = newNodeID
     }
 
     case UpdateSuccNode(newNodeID) => {
       succNode = newNodeID
-      //context.actorSelection("../" + newNodeID) ! UpdatePredNode(nodeID)
+    }
+
+    // Chooses random number and sends message to that node until the number of requests
+    case SendMessages(pNodeID,numNodes,numRequests) => {
+      // Goes from successor to successor until it reaches itself.
+      // One node gets the send message request and sends it around to all other nodes.
+      if (succNode != pNodeID) {
+        context.actorSelection("../" + succNode) ! SendMessages(pNodeID,numNodes,numRequests)
+      }
+      // Node that is sending messages creates a new thread so the node can continuously send messages
+      val thread = new Thread {
+        override def run {
+          for (i <- 0 until numRequests) {
+            var r = getID(nodeID)
+            while (r == getID(nodeID) || r == 0) {
+              r = Random.nextInt(numNodes) * 2
+            }
+            Thread.sleep(1000)
+            //println("Random: " + getNodeName(r))
+            context.actorSelection("../" + nodeID) ! LocateNode(getNodeName(r), nodeID, 0, -3)
+          }
+        }
+      }
+      thread.start
     }
 
   }
 
-
-  def getFingerTable() = {
-    //for (i <- 0 until m) {
-      //context.actorSelection("../" + succNode) ! FindClosestPrecedingNode(nodeID, 3)
-    //}
-    for (i <- 1 until m) {
-      val n = (getID(nodeID) + pow(2,i)) % numNodes
-      val nodeName = getNodeName(n.toInt)
-      fingerTable.+=(nodeName)
-    }
-    for (i <- 0 until m) {
-      //println("Node ID: " + nodeID + "   Finger Table: " + fingerTable(i))
-    }
-  }
-
+  // Fills in finger table. Clears all the node IDs and go from 0 to m.
   def stabilizeNode(pNodeID: String) = {
     val iNodeID = getID(pNodeID)
     fingerTable.clear()
     for (i <- 0 until m) {
       fingerTable.+=("")
       var l = (iNodeID + pow(2,i)) % (numNodes * 2)
+      // Handles the last node
       if (iNodeID > 0 && l == 0) l = iNodeID
-      //println("PNODE ID: " + pNodeID + "   GET NODE NAME: " + getNodeName(l.toInt))
+      // Try to locate that node
       context.actorSelection("../" + pNodeID) ! LocateNode(getNodeName(l.toInt), pNodeID, 0, i)
     }
   }
 
+  // Adds the zeros for the node name
   def getNodeName(idx: Int): String = {
     var result = ""
     if (idx < 10) {
@@ -247,6 +234,7 @@ class NodeActor(nodeID: String, pPredNode: String, pSuccNode: String, numRequest
     result
   }
 
+  // Get the integer value of the name
   def getID(nodeName: String): Int = {
     var result = 0
     result = nodeName.replaceFirst("^0+(?!$)", "").toInt
