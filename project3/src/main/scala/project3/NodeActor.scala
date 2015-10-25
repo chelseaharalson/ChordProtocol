@@ -51,6 +51,7 @@ class NodeActor(nodeID: String, pPredNode: String, pSuccNode: String, numRequest
       var found = false
 
       nextNode = succNode
+
       // Tries to locate node through finger table.
       breakable {
         for (i <- 0 until fingerTable.size) {
@@ -68,50 +69,54 @@ class NodeActor(nodeID: String, pPredNode: String, pSuccNode: String, numRequest
               found = true
               //println("ASSIGN NEXT NODE ID: " + nextNode)
             }
-            else {
-              break
-            }
+            else break
           }
         }
       }
+      if (lnodeID == startNode) {
+        found = true
+        nextNode = lnodeID
+      }
 
       if (mID == -3 && found) hops2 += 1
-      // Tries to locate node through successor node.
-      if ((!found) && (
-        ( (lnodeID > startNode) && (lnodeID > succNode) && (succNode > startNode) ) // not crossing 0
-        || ( (lnodeID < startNode) && (lnodeID > succNode) ) // crosses 0
-        || ( (lnodeID < startNode) && (succNode > startNode) ) // locate crossing 0 - before 0 - left side always select
-        )) {
+      if (hops2 < 10) {
+        // Tries to locate node through successor node.
+        if ((!found) && (
+          ((lnodeID > startNode) && (lnodeID > succNode) && (succNode > startNode)) // not crossing 0
+            || ((lnodeID < startNode) && (lnodeID > succNode)) // crosses 0
+            || ((lnodeID < startNode) && (succNode > startNode)) // locate crossing 0 - before 0 - left side always select
+          )) {
           found = true
           nextNode = succNode
         }
 
-      if (!found) {
-        if (mID == -2) {
-          // join mode
-          // Succ Node is the closest largest node, so succ node gets the message to update nodes
-          context.actorSelection("../" + succNode) ! UpdateNodes(lnodeID)
+        if (!found) {
+          if (mID == -2) {
+            // join mode
+            // Succ Node is the closest largest node, so succ node gets the message to update nodes
+            context.actorSelection("../" + succNode) ! UpdateNodes(lnodeID)
+          }
+          else {
+            //println("!!!!!!!!!!!@@@@@@@@@@@@@######### " + lnodeID + "    " + succNode + "    " + nodeID)
+            context.actorSelection("../" + startNode) ! ClosestNode(succNode, mID)
+          }
+        }
+        else if (getID(lnodeID) % (numNodes * 2) == getID(nextNode)) {
+          //if (mID == -3) println("lnode: " + lnodeID + "  FINISHED   " + nextNode + "   MOD: " + getID(lnodeID) % numNodes)
+          if (mID == -2) {
+            // join mode
+            context.actorSelection("../" + succNode) ! UpdateNodes(lnodeID)
+          }
+          else {
+            //hops2 += 1
+            context.actorSelection("../" + startNode) ! FoundNode(nextNode, hops2, mID)
+          }
         }
         else {
-          //println("!!!!!!!!!!!@@@@@@@@@@@@@######### " + lnodeID + "    " + succNode + "    " + nodeID)
-          context.actorSelection("../" + startNode) ! ClosestNode(succNode, mID)
-        }
-      }
-      else if (getID(lnodeID) % (numNodes * 2) == getID(nextNode)) {
-        //if (mID == -3) println("lnode: " + lnodeID + "  FINISHED   " + nextNode + "   MOD: " + getID(lnodeID) % numNodes)
-        if (mID == -2) {
-          // join mode
-          context.actorSelection("../" + succNode) ! UpdateNodes(lnodeID)
-        }
-        else {
+          //if (mID == -3) println("lnode: " + lnodeID + "  LOCATE   " + nextNode)
           //hops2 += 1
-          context.actorSelection("../" + startNode) ! FoundNode(nextNode, hops2, mID)
+          context.actorSelection("../" + nextNode) ! LocateNode(lnodeID, startNode, hops2, mID)
         }
-      }
-      else {
-        //if (mID == -3) println("lnode: " + lnodeID + "  LOCATE   " + nextNode)
-        //hops2 += 1
-        context.actorSelection("../" + nextNode) ! LocateNode(lnodeID, startNode, hops2, mID)
       }
     }
 
@@ -134,6 +139,7 @@ class NodeActor(nodeID: String, pPredNode: String, pSuccNode: String, numRequest
     // Not an exact match on the closest node, but found next largest one.
     case ClosestNode(pnodeID,mID) => {
       if (mID >= 0) fingerTable(mID) = pnodeID
+      //println(pnodeID)
       /*println("Closest Node: " + pnodeID + "   MID: " + mID + "   pow: " + pow(2,mID) + "  Finger table MID: "
         + fingerTable(mID) + "   Node ID: " + nodeID)*/
     }
@@ -185,9 +191,10 @@ class NodeActor(nodeID: String, pPredNode: String, pSuccNode: String, numRequest
       // Node that is sending messages creates a new thread so the node can continuously send messages
       val thread = new Thread {
         override def run {
-          for (i <- 0 until numRequests) {
+          val numOfRequests = numRequests * 2
+          for (i <- 0 until numOfRequests) {
             var r = getID(nodeID)
-            while (r == getID(nodeID) || r == 0) {
+            while (r == getID(nodeID) || r == 0 || r == numNodes * 2) {
               r = Random.nextInt(numNodes) * 2
             }
             Thread.sleep(1000)
