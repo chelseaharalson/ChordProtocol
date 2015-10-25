@@ -65,8 +65,7 @@ class NodeActor(nodeID: String, pPredNode: String, pSuccNode: String, numRequest
             }
             else if (((lnodeID > startNode) && (lnodeID > ft) && (ft > startNode)) || // normal locate
               ((lnodeID < startNode) && (lnodeID > ft)) || // locate crossing 0 - normal selection
-              ((lnodeID < startNode) && (ft > startNode))) {
-              // locate crossing 0 - before 0 - left side always select
+              ((lnodeID < startNode) && (ft > startNode))) { // locate crossing 0 - before 0 - left side always select
               nextNode = fingerTable(i)
               found = true
               //println("ASSIGN NEXT NODE ID: " + nextNode)
@@ -82,7 +81,7 @@ class NodeActor(nodeID: String, pPredNode: String, pSuccNode: String, numRequest
       if (
         ( (lnodeID > startNode) && (lnodeID > succNode) && (succNode > startNode) ) // not crossing 0
         || ( (lnodeID < startNode) && (lnodeID > succNode) ) // crosses 0
-        || ( (lnodeID < startNode) && (succNode > startNode) )
+        || ( (lnodeID < startNode) && (succNode > startNode) ) // locate crossing 0 - before 0 - left side always select
         && (!found) ) {
           found = true
           nextNode = succNode

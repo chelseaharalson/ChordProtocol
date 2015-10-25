@@ -48,8 +48,8 @@
       <file leaf-file-name="NodeActor.scala" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/main/scala/project3/NodeActor.scala">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="3.112745">
-              <caret line="127" column="7" selection-start-line="127" selection-start-column="7" selection-end-line="127" selection-end-column="7" />
+            <state vertical-scroll-proportion="0.44117647">
+              <caret line="83" column="120" selection-start-line="83" selection-start-column="120" selection-end-line="83" selection-end-column="120" />
               <folding>
                 <element signature="e#18#37#0" expanded="true" />
               </folding>
@@ -854,8 +854,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/main/scala/project3/NodeActor.scala">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="3.112745">
-          <caret line="127" column="7" selection-start-line="127" selection-start-column="7" selection-end-line="127" selection-end-column="7" />
+        <state vertical-scroll-proportion="0.44117647">
+          <caret line="83" column="120" selection-start-line="83" selection-start-column="120" selection-end-line="83" selection-end-column="120" />
           <folding>
             <element signature="e#18#37#0" expanded="true" />
           </folding>
