@@ -19,14 +19,14 @@ class MasterActor(numNodes: Int, numRequests: Int) extends Actor {
         //createRingTwo()
         context.actorSelection(getNodeName(2)) ! StabilizeAllNodes(getNodeName(2))
         context.actorSelection(getNodeName(numNodes * 2)) ! Stabilize(getNodeName(numNodes * 2))
-        //context.actorSelection(getNodeName(52)) ! Stabilize(getNodeName(52))
         insertNode(getNodeName(3),getNodeName(2),true)
-        //Thread.sleep(numNodes * 500)
-        Thread.sleep(5000)
+        Thread.sleep(numNodes * 500)
+        //Thread.sleep(5000)
         println("================")
         context.actorSelection(getNodeName(2)) ! SendMessages(getNodeName(2),numNodes,numRequests)
+        // Used for testing purposes and for print outs
         //context.actorSelection(getNodeName(52)) ! LocateNode(getNodeName(2), getNodeName(52), 0, -3)
-        context.actorSelection(getNodeName(48)) ! "PrintFingerTable"
+        //context.actorSelection(getNodeName(20)) ! "PrintFingerTable"
       }
     }
 

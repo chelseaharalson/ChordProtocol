@@ -18,7 +18,7 @@ object Main {
       System.exit(0)
     }
 
-    println("Number of Nodes: " + args(0) + " Number of Requests: " + args(1))
+    println("Number of Nodes: " + args(0) + "; Number of Requests: " + args(1))
 
     val system = ActorSystem("Chord")
     val master = system.actorOf(Props(new MasterActor(args(0).toInt, args(1).toInt)), "master")
